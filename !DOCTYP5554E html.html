@@ -1,0 +1,362 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>【台灣奇觀】荒謬三寶調查局</title>
+    <style>
+        /* * 核心風格：超現實賽博龐克 (Cyber-Absurdism)
+         * 配色：混亂霓虹粉 (#ff00ff)、深淵藍 (#000033)、警告金 (#ffff00)、毒藥綠 (#00ff00)
+         */
+        :root {
+            --bg: #00001a;
+            --neon-pink: #ff00ff;
+            --neon-cyan: #00ffff;
+            --neon-yellow: #ffff00;
+            --neon-green: #00ff00;
+            --neon-red: #ff0033;
+            --card-bg: rgba(10, 10, 50, 0.9);
+        }
+
+        * { box-sizing: border-box; font-family: 'PingFang TC', sans-serif; cursor: crosshair; }
+
+        body {
+            background-color: var(--bg);
+            background-image: 
+                linear-gradient(rgba(255, 0, 255, 0.05) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(0, 255, 255, 0.05) 1px, transparent 1px);
+            background-size: 30px 30px;
+            color: white;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            overflow-x: hidden;
+        }
+
+        #app { width: 95%; max-width: 650px; z-index: 10; }
+
+        /* 霓虹標題 */
+        .glitch-title {
+            text-align: center;
+            font-size: 2.5rem;
+            font-weight: 900;
+            color: var(--neon-cyan);
+            text-shadow: 3px 3px var(--neon-pink);
+            margin-bottom: 20px;
+            letter-spacing: 5px;
+        }
+
+        .status-bar {
+            display: flex;
+            justify-content: space-between;
+            background: rgba(0, 0, 0, 0.8);
+            padding: 10px;
+            border: 1px solid var(--neon-pink);
+            margin-bottom: 15px;
+            font-weight: bold;
+            font-size: 0.9rem;
+        }
+
+        /* 題目卡片 */
+        .quiz-card {
+            background: var(--card-bg);
+            border: 4px double var(--neon-cyan);
+            padding: 25px;
+            box-shadow: 0 0 20px rgba(0, 255, 255, 0.2), inset 0 0 15px rgba(255, 0, 255, 0.1);
+            position: relative;
+        }
+
+        .question-area {
+            font-size: 1.5rem;
+            margin-bottom: 25px;
+            line-height: 1.4;
+            color: var(--neon-yellow);
+            text-shadow: 0 0 5px rgba(255, 255, 0, 0.5);
+        }
+
+        .options-grid {
+            display: grid;
+            gap: 15px;
+        }
+
+        .option-btn {
+            background: transparent;
+            border: 2px solid var(--neon-pink);
+            color: white;
+            padding: 15px;
+            font-size: 1.1rem;
+            text-align: left;
+            transition: 0.2s;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .option-btn:hover:not(:disabled) {
+            background: var(--neon-pink);
+            color: black;
+            box-shadow: 0 0 20px var(--neon-pink);
+        }
+
+        .option-btn:disabled { opacity: 0.8; cursor: not-allowed; }
+
+        /* 狀態效果 */
+        .option-btn.correct {
+            border-color: var(--neon-green) !important;
+            background: var(--neon-green) !important;
+            color: black !important;
+            box-shadow: 0 0 30px var(--neon-green);
+        }
+
+        .option-btn.wrong {
+            border-color: var(--neon-red) !important;
+            background: var(--neon-red) !important;
+            color: white !important;
+            animation: shake 0.3s;
+        }
+
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-10px); }
+            75% { transform: translateX(10px); }
+        }
+
+        /* 解說面板 */
+        .explanation {
+            margin-top: 20px;
+            padding: 15px;
+            border-left: 5px solid var(--neon-cyan);
+            background: rgba(0, 255, 255, 0.1);
+            display: none;
+        }
+
+        .next-btn {
+            display: none;
+            width: 100%;
+            margin-top: 20px;
+            background: var(--neon-yellow);
+            color: black;
+            border: none;
+            padding: 15px;
+            font-weight: 900;
+            font-size: 1.2rem;
+            letter-spacing: 2px;
+        }
+
+        /* 結算 */
+        .result-screen { display: none; text-align: center; }
+        .big-score { font-size: 6rem; color: var(--neon-pink); text-shadow: 0 0 50px var(--neon-pink); }
+
+        @media (max-width: 480px) {
+            .glitch-title { font-size: 1.8rem; }
+            .question-area { font-size: 1.2rem; }
+        }
+    </style>
+</head>
+<body>
+
+<div id="app">
+    <div id="game-ui">
+        <h1 class="glitch-title">奇觀調查局</h1>
+        
+        <div class="status-bar">
+            <span>[EVIDENCE: <span id="idx-display">1</span>/15]</span>
+            <span id="level-name" style="color:var(--neon-cyan)">基礎荒謬</span>
+            <span style="color:var(--neon-yellow)">XP: <span id="score-display">0</span></span>
+        </div>
+
+        <div class="quiz-card">
+            <div id="question" class="question-area">正在同步大腦數據...</div>
+            <div id="options" class="options-grid"></div>
+
+            <div id="explanation-box" class="explanation">
+                <strong style="color:var(--neon-cyan)">【調查結論】</strong>
+                <p id="explanation-text" style="margin-top:5px;"></p>
+            </div>
+
+            <button id="next-btn" class="next-btn" onclick="goNext()">接入下一個現實</button>
+        </div>
+    </div>
+
+    <div id="result-ui" class="result-screen">
+        <div class="quiz-card">
+            <h2 style="color:var(--neon-cyan)">調查報告：完結</h2>
+            <div class="big-score" id="final-score">0</div>
+            <p id="final-comment" style="font-size: 1.2rem; margin: 20px 0;"></p>
+            <button class="next-btn" style="display:block" onclick="resetGame()">重啟宇宙</button>
+        </div>
+    </div>
+</div>
+
+<script>
+/**
+ * 題庫設定：格式遵循需求，o[0] 為正確答案。
+ * 內容：極度荒謬、惡搞、台味十足。
+ */
+
+const easyQuestions = [
+    {q: "關於台灣公車的「博愛座」，最荒謬的傳聞是它其實長得像？", o: ["唐老鴨，隨時會對你大叫", "一塊巨大的臭豆腐", "鋼鐵人的座艙"], a: 0, e: "在某些極端正義魔人的眼中，博愛座確實像隻易怒的唐老鴨，只要你坐錯了就會被噴。"},
+    {q: "台灣馬路上的「移動式神像」通常是指哪種交通工具？", o: ["改管改到飛天的塑膠車", "裝滿高麗菜的藍色小貨車", "噴黑煙的幽靈公車"], a: 0, e: "這些機車騎士擁有一種無視物理定律的自信，宛如神蹟現身。"},
+    {q: "為什麼台灣的超商店員什麼都會？真相是？", o: ["他們是退休的特務機構人員", "他們其實是仿生機器人", "他們有四隻手"], a: 0, e: "結帳、煮咖啡、影印、收包裹，除了不能幫你代考，他們無所不能。"},
+    {q: "垃圾車播放《給愛麗絲》的真實意圖是？", o: ["召喚被垃圾淹沒的人類", "純粹想練習鋼琴", "這是貝多芬遺囑的要求"], a: 0, e: "這首歌在台灣代表「快提著臭袋子衝刺」，是一種條件反射的洗腦。"},
+    {q: "台灣「三寶」之一的逆向行駛，在專業術語中被稱為？", o: ["異世界穿越跑法", "直線加速運動", "隨緣駕駛法"], a: 0, e: "對他們來說，地上的雙黃線只是精美的裝飾品。"},
+    {q: "在夜市看到「臭豆腐」，其臭味的來源傳說是？", o: ["封印了千年臭襪子的精華", "純天然發酵", "隔壁攤位的汗水"], a: 0, e: "雖然傳聞很荒謬，但越臭的人氣越高，這是台灣嗅覺奇觀。"},
+    {q: "台灣便利商店的茶葉蛋，如果煮得太黑，代表它？", o: ["吸收了店員的怨念", "比較入味", "它是恐龍蛋"], a: 0, e: "那些黑到發亮的蛋，通常擁有足以擊穿靈魂的鹹度。"},
+    {q: "台灣騎士「反穿外套」的終極目的是？", o: ["變身為蝙蝠俠的前奏", "單純怕冷", "這是一種流行時尚"], a: 0, e: "這是一種類似鎧甲的防護，讓騎士在都市叢林中顯得威風堂堂。"},
+    {q: "台灣最強大的守護神「綠色乖乖」，必須放在哪裡才有效？", o: ["電腦伺服器上面", "自己的口袋裡", "肚子裡"], a: 0, e: "只要放了綠乖乖，機器就不敢調皮，這是台灣科技界的玄學奇觀。"},
+    {q: "在路上遇到閃著「黃燈」的計程車，代表它是？", o: ["陸地上的大白鯊", "移動的黃金屋", "趕著去救人的英雄"], a: 0, e: "在切換車道時，小黃的侵略性往往讓路人懷疑自己身處《玩命關頭》。"},
+    {q: "台灣有一種生物叫「機車族」，他們在紅燈時的棲息地是？", o: ["任何有樹蔭的地方", "待轉區中心", "斑馬線上"], a: 0, e: "夏天的高溫會強迫機車族在離紅燈三十公尺外的陰影處集體停滯。"},
+    {q: "台灣人說「要不要去喝茶」，通常是指？", o: ["去喝手搖飲聊天", "真的去山上採茶", "去警察局"], a: 0, e: "通常是社交活動的開始，伴隨著珍珠與高熱量的狂歡。"},
+    {q: "「三色豆」在台灣被視為？", o: ["便當界的毀滅者", "營養來源", "高級食材"], a: 0, e: "冷凍玉米、青豆、紅蘿蔔的組合，是全台學子的惡夢。"},
+    {q: "台灣的「珍珠奶茶」吸管為什麼是粗的？", o: ["為了發射珍珠攻擊政敵", "方便吸珍珠", "節省塑料"], a: 0, e: "這管徑是經過精密計算的，確保每一口都能有彈牙的震撼。"},
+    {q: "在台灣，路邊的電線桿上常貼著「南無阿彌陀佛」，這是為了？", o: ["物理性超渡超速者", "增加美觀", "免費廣告"], a: 0, e: "這是一種宗教性的測速照相提醒，提醒你慢點開才不會真的去見佛。"},
+    {q: "台灣人遇到地震時，第一反應通常是？", o: ["發一則「好大」的社群貼文", "立刻躲進桌子下", "逃出大樓"], a: 0, e: "拿起手機發文的優先權遠高於生命安全，這是數位時代的奇觀。"},
+    {q: "台灣便利商店的招牌燈要是沒亮，代表？", o: ["宇宙毀滅的徵兆", "燈泡壞了", "它倒閉了"], a: 0, e: "超商不亮燈比外星人入侵還令人不安。"},
+    {q: "「鳳梨酥」裡面如果沒有鳳梨，它其實是？", o: ["冬瓜做的騙局", "純糖塊", "麵粉糊"], a: 0, e: "雖然叫鳳梨酥，但內餡多半是冬瓜，這是台灣食補的荒謬幽默。"},
+    {q: "台灣「機車瀑布」的壯觀程度，曾被譽為？", o: ["地獄之門的開啟", "工業革命的遺產", "浪漫的流動"], a: 0, e: "每天早上的台北橋，都是一場與時間賽跑的鋼鐵洗禮。"},
+    {q: "在路上看到有人對你「點頭」，在機車文化中代表？", o: ["謝了兄弟", "他在打瞌睡", "他在跳舞"], a: 0, e: "這是一種沈默的騎士禮儀，代表你讓我先行。"},
+    {q: "台灣的「全聯」福利中心，最讓人洗腦的聲音是？", o: ["請支援收銀！", "歡迎光臨！", "快點買東西！"], a: 0, e: "這五個字是全台主婦與趕時間者的集體焦慮來源。"},
+    {q: "台灣人點手搖飲時，說「去冰」結果還是有冰塊，原因是？", o: ["冰塊是這杯飲料的靈魂碎片", "店員手滑", "物理定律失效"], a: 0, e: "「微冰、去冰、完全去冰」是台灣手搖飲最複雜的哲學難題。"},
+    {q: "為什麼台灣公車司機開車像在開戰機？", o: ["他們以前真的是開戰機的", "他們想趕快下班", "那是公車的自動駕駛系統"], a: 0, e: "那個甩尾跟加速，常讓乘客懷疑自己是不是坐進了《生死時速》的拍片現場。"},
+    {q: "台灣最神祕的單位「鄰里長」，他們擁有的特殊技能是？", o: ["全社區的人脈衛星定位", "瞬間移動", "隱身術"], a: 0, e: "誰家貓不見、誰家吵架，里長永遠掌握第一手情資。"},
+    {q: "「蚵仔煎」的靈魂是什麼？", o: ["那層黏糊糊的太白粉勾芡", "蚵仔本身", "盤子"], a: 0, e: "那坨不明的半透明凝膠狀物體，才是台灣人心中的浪漫。"},
+    {q: "台灣人如果說「下次再約」，真實含意是？", o: ["這輩子應該不會再見了", "明天見", "下週見"], a: 0, e: "這是一種優雅的道別，通常「下次」指的是宇宙熱寂之後。"},
+    {q: "台灣的「待轉區」在尖峰時刻會變成？", o: ["機車溢出區", "停車場", "行人地獄"], a: 0, e: "格子永遠裝不下台灣騎士的熱情與數量。"},
+    {q: "為什麼台灣路上那麼多「檳榔攤」？", o: ["那是都市裡的燈塔", "為了環保", "為了藝術"], a: 0, e: "色彩繽紛的霓虹燈管，是台灣街頭最生猛的視覺圖騰。"},
+    {q: "「台式早餐店」的阿姨最喜歡叫你什麼？", o: ["帥哥/美女", "那個誰", "顧客"], a: 0, e: "不管你長得如何，在那一刻，你就是全台灣最耀眼的巨星。"},
+    {q: "台灣人去醫院「掛號」的行為，本質上是？", o: ["去參加大型聚會交流病況", "真的想看醫生", "為了領藥水"], a: 0, e: "對長輩來說，醫院是重要的社交中心，充滿了生命的力量。"},
+    {q: "台灣最可怕的「移動生物」是路邊的？", o: ["阿婆騎的大改裝電動車", "野狗", "鴿子"], a: 0, e: "阿婆的車速與走位是無法預測的量子疊加態。"},
+    {q: "台灣的「中壢」在網路上常被戲稱為？", o: ["中壢勞壢市", "快樂天堂", "美食之都"], a: 0, e: "這是一種獨特的網路地名梗，反映了該區的多元文化與獨特節奏。"},
+    {q: "台灣哪一種超商零食是「看電影」必備？", o: ["科學麵(要捏碎)", "牛排", "壽司"], a: 0, e: "捏碎、撒粉、搖一搖，這是台灣少年時代的叛逆儀式。"},
+    {q: "台灣的「黃金右腳」通常是指？", o: ["很會開快車的人", "足球員", "跳舞高手"], a: 0, e: "專指那些油門踩下去就沒想過放開的馬路奇才。"},
+    {q: "台灣人說「真的假的」，其實是在表達？", o: ["我聽到了，但我沒話說", "我不相信你", "這是假的"], a: 0, e: "這是一個萬用的填充句，代表我正在聽，但其實我也不太在意真相。"}
+];
+
+const hardQuestions = [
+    {q: "台灣獨有的「區間測速」，其背後的陰謀論是？", o: ["為了強迫駕駛欣賞風景", "為了收更多錢", "為了研究輪胎磨損"], a: 0, e: "既然瞬間太快會被抓，那就逼你在這段路內慢慢品味人生。"},
+    {q: "台灣「機車路權」爭議中，騎士最想拆掉的東西是？", o: ["寫著『禁行機車』的柏油路", "排氣管", "後照鏡"], a: 0, e: "那四個字簡直是騎士眼中的惡魔符咒，印在哪裡哪裡就是禁地。"},
+    {q: "「打狗」是高雄的古稱，那「打貓」是哪裡？", o: ["嘉義民雄", "屏東", "台北"], a: 0, e: "民雄古稱打貓，這名字聽起來像是在對抗某種神秘生物。"},
+    {q: "台灣第一間「誠品書店」24小時營業的真相是？", o: ["為了給沒地方睡的人一個高雅的家", "為了賣更多書", "燈關不掉"], a: 0, e: "它不僅是書店，更是台北深夜流浪靈魂的避風港。"},
+    {q: "台灣「健保卡」的神祕力量在於？", o: ["只要幾百塊就能換到一整袋藥", "可以當信用卡刷", "可以開門"], a: 0, e: "它是台灣人最重要的護身符，保佑你生病時不會破產。"},
+    {q: "在台灣交通法規中，「閃紅燈」代表？", o: ["停車再開（但沒人理會）", "可以加速通過", "慶祝用的"], a: 0, e: "法規說要停，但現實中大家把它當成「請注意看一眼再衝」。"},
+    {q: "台灣有一種建築物叫「鐵皮屋」，其主要功能是？", o: ["夏天用來烤肉(人肉)", "增加房價", "為了收集雨水"], a: 0, e: "夏天吸熱、雨天吵雜，卻是台灣最普遍的地景藝術。"},
+    {q: "「萬年大樓」之所以叫萬年，是因為？", o: ["裡面的模型店開了一萬年", "老闆名字", "它真的建了一萬年"], a: 0, e: "西門町的精神指標，裡面充滿了各種次文化與時代的眼淚。"},
+    {q: "台灣的高鐵為什麼沒有「商務艙專屬出口」？", o: ["因為台灣人講求眾生平等", "忘了蓋", "怕被投訴"], a: 0, e: "大家最後都要在出口排隊，這就是台灣式的公平奇觀。"},
+    {q: "台灣有一種特產叫「藍白拖」，其最強大的功能是？", o: ["物理性擊殺蟑螂", "潛水用", "登山用"], a: 0, e: "藍白拖的硬度與準確度，是台灣居家防衛的最高等級武器。"},
+    {q: "「安平古堡」裡的牆壁，傳說是用什麼糊起來的？", o: ["糯米汁糖漿加蚵灰", "普通水泥", "漿糊"], a: 0, e: "古人的智慧，用食物蓋房子，聽起來就很好吃（誤）。"},
+    {q: "台灣捷運的「博愛座」爭議，最常演變成？", o: ["格鬥大賽或網路公審", "禮讓大賽", "集體祈禱"], a: 0, e: "那張椅子承載了太多道德壓力，有時比坐電椅還讓人坐立難安。"},
+    {q: "台灣的「黃線」臨時停車，其時間限制通常被駕駛解讀為？", o: ["直到警察來為止", "三分鐘", "一小時"], a: 0, e: "「停一下而已」是台灣駕駛對時空觀念的一種相對論體現。"},
+    {q: "「太陽餅」裡面沒有太陽，是因為？", o: ["太陽被后羿射下來了", "那是它的形狀", "太陽太貴了"], a: 0, e: "這是一個著名的冷笑話，反映了台灣點心命名的隨意性。"},
+    {q: "台灣最強的「抗災物資」除了泡麵還有？", o: ["衛生紙", "乖乖", "珍奶"], a: 0, e: "只要傳出短缺，全台灣的衛生紙會在一夜之間消失，這也是一種奇觀。"}
+];
+
+// 核心邏輯
+let currentSet = [];
+let currentIndex = 0;
+let score = 0;
+let canAnswer = true;
+
+function resetGame() {
+    currentIndex = 0;
+    score = 0;
+    canAnswer = true;
+    
+    // 隨機抽取 10 易 + 5 難
+    const sEasy = shuffle([...easyQuestions]).slice(0, 10);
+    const sHard = shuffle([...hardQuestions]).slice(0, 5);
+    currentSet = [...sEasy, ...sHard];
+
+    document.getElementById('game-ui').style.display = 'block';
+    document.getElementById('result-ui').style.display = 'none';
+    document.getElementById('score-display').innerText = '0';
+    
+    showQuestion();
+}
+
+function showQuestion() {
+    canAnswer = true;
+    const qData = currentSet[currentIndex];
+    
+    // UI 更新
+    document.getElementById('idx-display').innerText = currentIndex + 1;
+    document.getElementById('level-name').innerText = currentIndex < 10 ? "基礎荒謬" : "進階瘋狂";
+    document.getElementById('question').innerText = qData.q;
+    document.getElementById('explanation-box').style.display = 'none';
+    document.getElementById('next-btn').style.display = 'none';
+
+    // 選項洗牌
+    const optionsBox = document.getElementById('options');
+    optionsBox.innerHTML = '';
+    
+    // 建立選項物件，o[0] 是正確答案
+    let opts = qData.o.map((text, i) => ({ text, isCorrect: i === 0 }));
+    opts = shuffle(opts);
+
+    opts.forEach(opt => {
+        const btn = document.createElement('button');
+        btn.className = 'option-btn';
+        btn.innerText = opt.text;
+        btn.onclick = () => check(opt.isCorrect, btn, opts);
+        optionsBox.appendChild(btn);
+    });
+}
+
+function check(isCorrect, target, opts) {
+    if (!canAnswer) return;
+    canAnswer = false;
+
+    const btns = document.querySelectorAll('.option-btn');
+    btns.forEach((b, i) => {
+        b.disabled = true;
+        if (opts[i].isCorrect) b.classList.add('correct');
+    });
+
+    if (isCorrect) {
+        score += 10;
+        document.getElementById('score-display').innerText = score;
+    } else {
+        target.classList.add('wrong');
+    }
+
+    document.getElementById('explanation-text').innerText = currentSet[currentIndex].e;
+    document.getElementById('explanation-box').style.display = 'block';
+    document.getElementById('next-btn').style.display = 'block';
+}
+
+function goNext() {
+    currentIndex++;
+    if (currentIndex < 15) {
+        showQuestion();
+    } else {
+        end();
+    }
+}
+
+function end() {
+    document.getElementById('game-ui').style.display = 'none';
+    document.getElementById('result-ui').style.display = 'block';
+    document.getElementById('final-score').innerText = score;
+
+    let msg = "";
+    if (score >= 130) msg = "完美破案！你已經進化成終極台灣奇觀，博愛座上的唐老鴨都對你表示尊敬。";
+    else if (score >= 90) msg = "表現不錯！你對這片土地的荒謬有足夠的抗性，下次記得帶包綠色乖乖。";
+    else msg = "調查失敗...你的現實感太強了，無法理解台灣的腦洞，請重新掃描大腦。";
+    
+    document.getElementById('final-comment').innerText = msg;
+}
+
+function shuffle(arr) {
+    for (let i = arr.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [arr[i], arr[j]] = [arr[j], arr[i]];
+    }
+    return arr;
+}
+
+// 啟動宇宙
+window.onload = resetGame;
+</script>
+
+</body>
+</html>
